@@ -1,0 +1,2544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云朝纪 - 专业股票量化分析平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    
+    <!-- 配置Tailwind自定义主题 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36BFFA',
+                        accent: '#7B61FF',
+                        neutral: '#F5F7FA',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'chart-grid': '#E5E7EB'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            }
+            .transition-custom {
+                transition: all 0.3s ease-in-out;
+            }
+            .card-hover {
+                @apply hover:shadow-lg transition-custom hover:-translate-y-1;
+            }
+            .gradient-overlay {
+                background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%);
+            }
+            .scrollbar-thin {
+                scrollbar-width: thin;
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 4px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background-color: rgba(156, 163, 175, 0.5);
+                border-radius: 2px;
+            }
+            .chart-container-wrapper {
+                position: relative;
+                height: 100%;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-white text-dark font-sans antialiased">
+    <!-- 页面加载动画 -->
+    <div id="pageLoader" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+            <div class="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-primary font-medium">云朝纪量化平台加载中...</p>
+        </div>
+    </div>
+
+    <!-- 首页 - 未注册用户 -->
+    <div id="homePage" class="min-h-screen">
+        <!-- 背景图 -->
+        <div class="relative h-screen">
+            <!-- 使用本地图片作为背景 -->
+            <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('index.jpg'); filter: brightness(0.7);">
+                <!-- 背景图占位，实际使用时替换为index.jpg -->
+                <div class="absolute inset-0 bg-gradient-to-b from-black/50 to-black/70"></div>
+            </div>
+            
+            <!-- 平台标识和注册按钮 - 居中显示 -->
+            <div class="relative z-10 flex flex-col items-center justify-center h-full text-white text-center px-4">
+                <div class="flex flex-col items-center max-w-2xl mx-auto">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <i class="fa fa-line-chart text-5xl text-white drop-shadow-lg"></i>
+                        <h1 class="text-5xl md:text-6xl font-bold text-shadow">云朝纪</h1>
+                    </div>
+                    <p class="text-xl md:text-2xl mb-10 text-shadow max-w-lg">专业股票量化分析平台，用数据驱动投资决策</p>
+                    <div class="flex flex-col sm:flex-row gap-4 w-full justify-center">
+                        <button id="showRegisterBtn" class="px-10 py-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-md transition-custom shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
+                            免费注册
+                        </button>
+                        <button id="showLoginBtn" class="px-10 py-4 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white font-medium rounded-md transition-custom border border-white/40 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                            登录
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 页脚 -->
+            <footer class="absolute bottom-0 left-0 right-0 bg-black/30 backdrop-blur-sm text-white py-6">
+                <div class="container mx-auto px-4 text-center text-sm text-white/70">
+                    <p>© 2025 云朝纪 - 专业股票量化分析平台 版权所有</p>
+                    <p class="mt-1">投资有风险，入市需谨慎</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- 登录用户功能界面 -->
+    <div id="userDashboard" class="min-h-screen hidden">
+        <!-- 用户导航栏 -->
+        <header id="userNavbar" class="fixed w-full bg-white/95 backdrop-blur-sm z-50 transition-custom shadow-sm">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <a href="#" class="flex items-center space-x-2">
+                        <i class="fa fa-line-chart text-primary text-2xl"></i>
+                        <span class="text-xl font-bold text-primary">云朝纪</span>
+                    </a>
+                    
+                    <!-- 桌面导航 -->
+                    <nav class="hidden md:flex space-x-8">
+                        <a href="#analyzer" class="text-dark hover:text-primary transition-custom font-medium">量化分析</a>
+                        <a href="#strategies" class="text-dark hover:text-primary transition-custom font-medium">策略服务</a>
+                        <a href="#portfolio" class="text-dark hover:text-primary transition-custom font-medium">我的组合</a>
+                        <a href="#market" class="text-dark hover:text-primary transition-custom font-medium">市场行情</a>
+                        <a href="#education" class="text-dark hover:text-primary transition-custom font-medium">量化学院</a>
+                        <a href="#news" class="text-dark hover:text-primary transition-custom font-medium">财经资讯</a>
+                    </nav>
+                    
+                    <!-- 用户信息和快捷功能 -->
+                    <div class="hidden md:flex items-center space-x-6">
+                        <!-- 搜索框 -->
+                        <div class="relative">
+                            <input type="text" placeholder="搜索股票代码或名称" class="pl-9 pr-4 py-2 rounded-full bg-neutral focus:outline-none focus:ring-2 focus:ring-primary/30 w-48 lg:w-64 transition-all">
+                            <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        
+                        <!-- 消息通知 -->
+                        <div class="relative">
+                            <button id="notificationBtn" class="text-gray-600 hover:text-primary transition-custom p-1">
+                                <i class="fa fa-bell text-xl"></i>
+                                <span class="absolute -top-1 -right-1 w-4 h-4 bg-danger rounded-full text-white text-xs flex items-center justify-center">3</span>
+                            </button>
+                            <!-- 通知下拉框 -->
+                            <div id="notificationDropdown" class="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 hidden z-20">
+                                <div class="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                                    <h4 class="font-medium">通知消息</h4>
+                                    <a href="#" class="text-xs text-primary">全部标为已读</a>
+                                </div>
+                                <div class="max-h-80 overflow-y-auto scrollbar-thin">
+                                    <a href="#" class="block px-4 py-3 hover:bg-neutral border-b border-gray-100">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <div class="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm text-gray-800">您关注的股票<span class="font-medium">贵州茅台(600519)</span>涨幅超过5%</p>
+                                                <p class="text-xs text-gray-500 mt-1">10分钟前</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a href="#" class="block px-4 py-3 hover:bg-neutral border-b border-gray-100">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <div class="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm text-gray-800">您的策略回测报告已生成</p>
+                                                <p class="text-xs text-gray-500 mt-1">1小时前</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a href="#" class="block px-4 py-3 hover:bg-neutral">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <div class="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm text-gray-800">新功能"多因子选股"已上线</p>
+                                                <p class="text-xs text-gray-500 mt-1">昨天</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="px-4 py-2 border-t border-gray-100 text-center">
+                                    <a href="#notifications" class="text-sm text-primary hover:text-primary/80">查看全部</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户信息 -->
+                        <div class="relative">
+                            <button id="userMenuBtn" class="flex items-center space-x-2">
+                                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <i class="fa fa-user text-primary"></i>
+                                </div>
+                                <span id="userPhone" class="text-sm font-medium">138****5678</span>
+                                <i class="fa fa-chevron-down text-xs text-gray-500"></i>
+                            </button>
+                            <div id="userMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden z-10">
+                                <a href="#profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">个人中心</a>
+                                <a href="#myStrategies" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">我的策略</a>
+                                <a href="#billing" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">账户充值</a>
+                                <a href="#" id="logoutBtn" class="block px-4 py-2 text-sm text-danger hover:bg-gray-100">退出登录</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 移动端菜单按钮 -->
+                    <button id="userMenuBtnMobile" class="md:hidden text-dark hover:text-primary transition-custom">
+                        <i class="fa fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 移动端导航菜单 -->
+            <div id="userMobileMenu" class="hidden md:hidden bg-white border-t">
+                <div class="container mx-auto px-4 py-3 space-y-3">
+                    <a href="#analyzer" class="block text-dark hover:text-primary transition-custom py-2">量化分析</a>
+                    <a href="#strategies" class="block text-dark hover:text-primary transition-custom py-2">策略服务</a>
+                    <a href="#portfolio" class="block text-dark hover:text-primary transition-custom py-2">我的组合</a>
+                    <a href="#market" class="block text-dark hover:text-primary transition-custom py-2">市场行情</a>
+                    <a href="#education" class="block text-dark hover:text-primary transition-custom py-2">量化学院</a>
+                    <a href="#news" class="block text-dark hover:text-primary transition-custom py-2">财经资讯</a>
+                    <div class="pt-2 border-t border-gray-100">
+                        <a href="#profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">个人中心</a>
+                        <a href="#myStrategies" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">我的策略</a>
+                        <a href="#billing" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">账户充值</a>
+                        <a href="#" id="mobileLogoutBtn" class="block px-4 py-2 text-sm text-danger hover:bg-gray-100">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 英雄区域 -->
+        <section class="pt-24 pb-10 bg-gradient-to-br from-neutral to-white overflow-hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="flex flex-wrap justify-between items-center">
+                    <div>
+                        <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-primary leading-tight mb-2">
+                            欢迎回来，<span id="welcomeUsername">用户</span>
+                        </h1>
+                        <p class="text-gray-600">
+                            您的量化分析工具已准备就绪，开始您的投资分析吧
+                        </p>
+                        
+                        <!-- 用户状态 -->
+                        <div class="flex items-center mt-4 space-x-4 flex-wrap">
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-2">剩余分析次数：</span>
+                                <span class="text-primary font-medium">3次</span>
+                            </div>
+                            <div class="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-2">会员等级：</span>
+                                <span class="text-accent font-medium">免费会员</span>
+                            </div>
+                            <div class="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                            <a href="#billing" class="text-sm text-primary hover:text-primary/80 transition-custom">
+                                升级会员 <i class="fa fa-arrow-right ml-1 text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 市场概览快速指标 -->
+                    <div class="mt-6 md:mt-0 grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                            <div class="text-xs text-gray-500">上证指数</div>
+                            <div class="flex items-center mt-1">
+                                <span class="font-semibold">3,286.45</span>
+                                <span class="ml-2 text-success text-xs flex items-center">
+                                    <i class="fa fa-caret-up mr-1"></i>1.24%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                            <div class="text-xs text-gray-500">深证成指</div>
+                            <div class="flex items-center mt-1">
+                                <span class="font-semibold">11,130.38</span>
+                                <span class="ml-2 text-success text-xs flex items-center">
+                                    <i class="fa fa-caret-up mr-1"></i>0.87%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                            <div class="text-xs text-gray-500">创业板指</div>
+                            <div class="flex items-center mt-1">
+                                <span class="font-semibold">2,276.22</span>
+                                <span class="ml-2 text-danger text-xs flex items-center">
+                                    <i class="fa fa-caret-down mr-1"></i>0.32%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 快捷访问 -->
+        <section class="py-6 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex overflow-x-auto pb-4 scrollbar-thin space-x-4">
+                    <button class="flex-shrink-0 bg-primary text-white px-6 py-3 rounded-lg flex items-center">
+                        <i class="fa fa-plus mr-2"></i>
+                        <span>新建分析</span>
+                    </button>
+                    <button class="flex-shrink-0 bg-white border border-gray-200 px-6 py-3 rounded-lg flex items-center hover:border-primary hover:text-primary transition-custom">
+                        <i class="fa fa-history mr-2"></i>
+                        <span>历史记录</span>
+                    </button>
+                    <button class="flex-shrink-0 bg-white border border-gray-200 px-6 py-3 rounded-lg flex items-center hover:border-primary hover:text-primary transition-custom">
+                        <i class="fa fa-star mr-2"></i>
+                        <span>我的收藏</span>
+                    </button>
+                    <button class="flex-shrink-0 bg-white border border-gray-200 px-6 py-3 rounded-lg flex items-center hover:border-primary hover:text-primary transition-custom">
+                        <i class="fa fa-file-text-o mr-2"></i>
+                        <span>分析报告</span>
+                    </button>
+                    <button class="flex-shrink-0 bg-white border border-gray-200 px-6 py-3 rounded-lg flex items-center hover:border-primary hover:text-primary transition-custom">
+                        <i class="fa fa-cog mr-2"></i>
+                        <span>系统设置</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 量化分析工具 -->
+        <section id="analyzer" class="py-12 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-primary mb-4">量化分析工具</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto">通过选择不同参数，获取股票的量化分析结果和投资建议</p>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- 左侧：参数设置 -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-xl font-semibold mb-6 flex items-center">
+                                <i class="fa fa-sliders text-primary mr-2"></i>
+                                参数设置
+                            </h3>
+                            
+                            <form id="analysisForm" class="space-y-6">
+                                <!-- 股票类型选择 -->
+                                <div>
+                                    <label for="stockType" class="block text-gray-700 mb-2 font-medium">股票类型</label>
+                                    <select id="stockType" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom">
+                                        <option value="all">全部A股</option>
+                                        <option value="sh">沪市A股</option>
+                                        <option value="sz">深市A股</option>
+                                        <option value="cyb">创业板</option>
+                                        <option value="kcb">科创板</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- 股票代码选择 -->
+                                <div>
+                                    <label for="stockCode" class="block text-gray-700 mb-2 font-medium">股票代码</label>
+                                    <div class="relative">
+                                        <select id="stockCode" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom appearance-none">
+                                            <option value="">请选择股票...</option>
+                                            <!-- 沪市A股 -->
+                                            <optgroup label="沪市A股">
+                                                <option value="600000">600000 - 浦发银行</option>
+                                                <option value="600036">600036 - 招商银行</option>
+                                                <option value="601318">601318 - 中国平安</option>
+                                                <option value="600519">600519 - 贵州茅台</option>
+                                                <option value="601899">601899 - 紫金矿业</option>
+                                            </optgroup>
+                                            <!-- 深市A股 -->
+                                            <optgroup label="深市A股">
+                                                <option value="000001">000001 - 平安银行</option>
+                                                <option value="000858">000858 - 五粮液</option>
+                                                <option value="002594">002594 - 比亚迪</option>
+                                            </optgroup>
+                                            <option value="custom">自定义代码...</option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                            <i class="fa fa-chevron-down text-gray-400"></i>
+                                        </div>
+                                    </div>
+                                    <div id="customStockCode" class="mt-3 hidden">
+                                        <input type="text" placeholder="请输入股票代码" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom">
+                                    </div>
+                                    
+                                    <!-- 快速选择 -->
+                                    <div class="mt-4">
+                                        <label class="block text-gray-700 mb-2 text-sm font-medium">快速选择</label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" class="quick-stock-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-code="600519">贵州茅台</button>
+                                            <button type="button" class="quick-stock-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-code="600036">招商银行</button>
+                                            <button type="button" class="quick-stock-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-code="002594">比亚迪</button>
+                                            <button type="button" class="quick-stock-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-code="601318">中国平安</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 时间范围选择 - 精确到具体年月 -->
+                                <div>
+                                    <label class="block text-gray-700 mb-2 font-medium">时间范围</label>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="startDate" class="block text-gray-600 text-sm mb-1">开始日期</label>
+                                            <input type="date" id="startDate" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom">
+                                        </div>
+                                        <div>
+                                            <label for="endDate" class="block text-gray-600 text-sm mb-1">结束日期</label>
+                                            <input type="date" id="endDate" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <label class="block text-gray-700 mb-2 text-sm font-medium">常用时间范围</label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" class="time-range-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-range="1M">近1个月</button>
+                                            <button type="button" class="time-range-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-range="3M">近3个月</button>
+                                            <button type="button" class="time-range-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-range="6M">近6个月</button>
+                                            <button type="button" class="time-range-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-range="1Y">近1年</button>
+                                            <button type="button" class="time-range-btn px-3 py-1 bg-neutral hover:bg-primary/10 text-sm rounded transition-custom" data-range="3Y">近3年</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 复权方式 -->
+                                <div>
+                                    <label for="adjustment" class="block text-gray-700 mb-2 font-medium">复权方式</label>
+                                    <select id="adjustment" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom">
+                                        <option value="qfq" selected>前复权</option>
+                                        <option value="hfq">后复权</option>
+                                        <option value="none">不复权</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- 策略选择 -->
+                                <div>
+                                    <label class="block text-gray-700 mb-2 font-medium">量化策略</label>
+                                    <div class="space-y-4 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
+                                        <label class="flex items-start">
+                                            <input type="radio" name="strategy" value="meanReversion" class="text-primary focus:ring-primary mt-1" checked>
+                                            <div class="ml-2">
+                                                <span class="font-medium">均值回归策略</span>
+                                                <p class="text-xs text-gray-500 mt-1">涨多了会跌，跌多了会涨</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start">
+                                            <input type="radio" name="strategy" value="trendFollowing" class="text-primary focus:ring-primary mt-1">
+                                            <div class="ml-2">
+                                                <span class="font-medium">趋势跟踪策略</span>
+                                                <p class="text-xs text-gray-500 mt-1">跟着趋势走，顺势而为</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start">
+                                            <input type="radio" name="strategy" value="rsi" class="text-primary focus:ring-primary mt-1">
+                                            <div class="ml-2">
+                                                <span class="font-medium">RSI指标策略</span>
+                                                <p class="text-xs text-gray-500 mt-1">判断超买超卖状态</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start">
+                                            <input type="radio" name="strategy" value="macd" class="text-primary focus:ring-primary mt-1">
+                                            <div class="ml-2">
+                                                <span class="font-medium">MACD策略</span>
+                                                <p class="text-xs text-gray-500 mt-1">利用指数平滑异同平均线判断趋势</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start">
+                                            <input type="radio" name="strategy" value="bollinger" class="text-primary focus:ring-primary mt-1">
+                                            <div class="ml-2">
+                                                <span class="font-medium">布林带策略</span>
+                                                <p class="text-xs text-gray-500 mt-1">基于价格波动性的交易策略</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start">
+                                            <input type="radio" name="strategy" value="movingAverage" class="text-primary focus:ring-primary mt-1">
+                                            <div class="ml-2">
+                                                <span class="font-medium">移动平均线策略</span>
+                                                <p class="text-xs text-gray-500 mt-1">短期均线与长期均线交叉信号</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- 高级参数设置 -->
+                                <div>
+                                    <button type="button" id="advancedParamsToggle" class="w-full flex justify-between items-center text-gray-600 hover:text-primary transition-custom py-2 border border-dashed border-gray-300 rounded-md">
+                                        <span>高级参数设置</span>
+                                        <i class="fa fa-chevron-down transition-custom"></i>
+                                    </button>
+                                    
+                                    <div id="advancedParams" class="hidden mt-4 space-y-4">
+                                        <div>
+                                            <label for="lookbackPeriod" class="block text-gray-700 mb-2 text-sm font-medium">回溯周期</label>
+                                            <select id="lookbackPeriod" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom text-sm">
+                                                <option value="20">20天</option>
+                                                <option value="30" selected>30天</option>
+                                                <option value="60">60天</option>
+                                                <option value="90">90天</option>
+                                                <option value="120">120天</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="threshold" class="block text-gray-700 mb-2 text-sm font-medium">触发阈值 (%)</label>
+                                            <input type="number" id="threshold" min="0.1" max="20" step="0.1" value="2.5" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom text-sm">
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="transactionCost" class="block text-gray-700 mb-2 text-sm font-medium">交易成本 (%)</label>
+                                            <input type="number" id="transactionCost" min="0.01" max="1" step="0.01" value="0.15" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom text-sm">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 提交按钮 -->
+                                <button type="button" id="analyzeBtn" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-md transition-custom shadow-sm hover:shadow flex items-center justify-center">
+                                    <i class="fa fa-calculator mr-2"></i>
+                                    执行量化分析
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧：分析结果 -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full">
+                            <h3 class="text-xl font-semibold mb-6 flex items-center">
+                                <i class="fa fa-bar-chart text-primary mr-2"></i>
+                                分析结果
+                            </h3>
+                            
+                            <!-- 加载状态 -->
+                            <div id="loadingState" class="hidden flex flex-col items-center justify-center py-16">
+                                <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                                <p class="text-gray-600">正在执行量化分析，请稍候...</p>
+                                <p class="text-sm text-gray-500 mt-2">本次分析将消耗1次免费次数</p>
+                            </div>
+                            
+                            <!-- 初始提示 -->
+                            <div id="initialState" class="flex flex-col items-center justify-center py-16 text-center">
+                                <i class="fa fa-lightbulb-o text-5xl text-primary/50 mb-4"></i>
+                                <p class="text-gray-500 max-w-md">请在左侧设置分析参数并点击"执行量化分析"按钮</p>
+                                <div class="mt-6 bg-primary/5 p-4 rounded-lg max-w-md">
+                                    <p class="text-sm text-gray-600 flex items-start">
+                                        <i class="fa fa-info-circle text-primary mt-1 mr-2"></i>
+                                        <span>量化分析基于历史数据，仅供参考，不构成投资建议。投资有风险，入市需谨慎。</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- 结果展示区 -->
+                            <div id="resultsState" class="hidden space-y-8">
+                                <!-- 股票基本信息 -->
+                                <div class="bg-neutral p-4 rounded-lg shadow-sm">
+                                    <div class="flex flex-wrap justify-between items-start">
+                                        <div>
+                                            <h4 class="text-lg font-semibold" id="resultStockName">招商银行 (600036)</h4>
+                                            <p class="text-sm text-gray-500" id="resultTimeRange">分析周期：2024-06-15 至 2025-06-15 | 前复权</p>
+                                        </div>
+                                        <div class="flex flex-col items-end mt-2 sm:mt-0">
+                                            <div class="flex items-center">
+                                                <span class="text-2xl font-bold text-success" id="resultPrice">34.56</span>
+                                                <span class="ml-2 text-success text-sm flex items-center">
+                                                    <i class="fa fa-caret-up mr-1"></i>
+                                                    <span id="resultChange">+2.34%</span>
+                                                </span>
+                                            </div>
+                                            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm">
+                                                <div>
+                                                    <span class="text-gray-500">今开：</span>
+                                                    <span id="resultOpen">33.89</span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-500">最高：</span>
+                                                    <span id="resultHigh">34.72</span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-500">最低：</span>
+                                                    <span id="resultLow">33.75</span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-500">成交量：</span>
+                                                    <span id="resultVolume">25.3万手</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 图表展示区 -->
+                                <div class="bg-neutral p-4 rounded-lg shadow-sm">
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <button class="chart-tab active px-4 py-2 bg-primary text-white rounded-md text-sm" data-chart="kline">K线图</button>
+                                        <button class="chart-tab px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-sm transition-custom" data-chart="volume">成交量图</button>
+                                        <button class="chart-tab px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-sm transition-custom" data-chart="returns">收益率曲线</button>
+                                    </div>
+                                    
+                                    <!-- 图表工具栏 -->
+                                    <div class="flex flex-wrap justify-between items-center mb-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            <button class="chart-period-btn px-3 py-1 bg-white text-sm rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom active" data-period="1D">1日</button>
+                                            <button class="chart-period-btn px-3 py-1 bg-white text-sm rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" data-period="1W">1周</button>
+                                            <button class="chart-period-btn px-3 py-1 bg-white text-sm rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" data-period="1M">1月</button>
+                                            <button class="chart-period-btn px-3 py-1 bg-white text-sm rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" data-period="3M">3月</button>
+                                            <button class="chart-period-btn px-3 py-1 bg-white text-sm rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" data-period="1Y">1年</button>
+                                        </div>
+                                        <div class="flex space-x-2 mt-2 sm:mt-0">
+                                            <button id="zoomInBtn" class="p-1.5 bg-white rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" title="放大">
+                                                <i class="fa fa-search-plus"></i>
+                                            </button>
+                                            <button id="zoomOutBtn" class="p-1.5 bg-white rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" title="缩小">
+                                                <i class="fa fa-search-minus"></i>
+                                            </button>
+                                            <button id="resetZoomBtn" class="p-1.5 bg-white rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" title="重置视图">
+                                                <i class="fa fa-refresh"></i>
+                                            </button>
+                                            <button id="downloadChartBtn" class="p-1.5 bg-white rounded border border-gray-200 hover:border-primary hover:text-primary transition-custom" title="下载图表">
+                                                <i class="fa fa-download"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- K线图 -->
+                                    <div id="klineChartContainer" class="chart-container">
+                                        <h5 class="text-sm font-medium mb-2">K线图（2024-06-15 至 2025-06-15）</h5>
+                                        <div class="h-96 border border-gray-200 rounded-md bg-white p-2 relative">
+                                            <canvas id="resultChart"></canvas>
+                                            <!-- 图表加载指示器 -->
+                                            <div id="klineChartLoader" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white p-4 rounded-lg mt-4">
+                                            <h6 class="font-medium mb-2">如何解读K线图：</h6>
+                                            <ul class="text-sm text-gray-600 space-y-1">
+                                                <li><strong>红色K线</strong>：收盘价 > 开盘价（上涨）</li>
+                                                <li><strong>绿色K线</strong>：收盘价 < 开盘价（下跌）</li>
+                                                <li><strong>实体部分</strong>：开盘价与收盘价之间的价差</li>
+                                                <li><strong>上下影线</strong>：分别表示该周期内的最高价和最低价</li>
+                                                <li><strong>应用技巧</strong>：长下影线可能表示支撑较强，长上影线可能表示阻力较大</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 成交量图 -->
+                                    <div id="volumeChartContainer" class="chart-container hidden">
+                                        <h5 class="text-sm font-medium mb-2">成交量图（2024-06-15 至 2025-06-15）</h5>
+                                        <div class="h-96 border border-gray-200 rounded-md bg-white p-2 relative">
+                                            <canvas id="volumeChart"></canvas>
+                                            <div id="volumeChartLoader" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white p-4 rounded-lg mt-4">
+                                            <h6 class="font-medium mb-2">如何解读成交量图：</h6>
+                                            <ul class="text-sm text-gray-600 space-y-1">
+                                                <li><strong>成交量</strong>：表示一定时间内的交易数量，反映市场活跃度</li>
+                                                <li><strong>放量上涨</strong>：价格上涨同时成交量增加，通常视为强势信号</li>
+                                                <li><strong>缩量下跌</strong>：价格下跌但成交量减少，可能表示抛压减弱</li>
+                                                <li><strong>应用技巧</strong>：价格突破关键位置时，成交量放大更能确认突破有效性</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 收益率曲线 -->
+                                    <div id="returnsChartContainer" class="chart-container hidden">
+                                        <h5 class="text-sm font-medium mb-2">收益率曲线图（2024-06-15 至 2025-06-15）</h5>
+                                        <div class="h-96 border border-gray-200 rounded-md bg-white p-2 relative">
+                                            <canvas id="returnsChart"></canvas>
+                                            <div id="returnsChartLoader" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white p-4 rounded-lg mt-4">
+                                            <h6 class="font-medium mb-2">如何解读收益率曲线：</h6>
+                                            <ul class="text-sm text-gray-600 space-y-1">
+                                                <li><strong>蓝色线</strong>：当前策略的累计收益率</li>
+                                                <li><strong>灰色线</strong>：市场基准（如沪深300）的累计收益率</li>
+                                                <li><strong>超额收益</strong>：蓝色线在灰色线上方表示策略跑赢市场</li>
+                                                <li><strong>回撤</strong>：曲线下降部分表示策略的短期亏损</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 策略绩效指标 - 现在与具体股票关联 -->
+                                <div class="bg-neutral p-4 rounded-lg shadow-sm">
+                                    <h4 class="font-semibold mb-4">策略绩效指标</h4>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div class="p-4 bg-white rounded-lg shadow-sm text-center card-hover">
+                                            <div class="text-sm text-gray-500 mb-1">年化收益率</div>
+                                            <div class="text-xl font-bold text-success" id="resultAnnualReturn">+24.8%</div>
+                                            <div class="mt-2 text-xs text-gray-600">
+                                                <strong>说明:</strong> 年度化收益率，越高越好
+                                            </div>
+                                        </div>
+                                        <div class="p-4 bg-white rounded-lg shadow-sm text-center card-hover">
+                                            <div class="text-sm text-gray-500 mb-1">夏普比率</div>
+                                            <div class="text-xl font-bold text-success" id="resultSharpeRatio">1.8</div>
+                                            <div class="mt-2 text-xs text-gray-600">
+                                                <strong>说明:</strong> 单位风险收益，>1为良好
+                                            </div>
+                                        </div>
+                                        <div class="p-4 bg-white rounded-lg shadow-sm text-center card-hover">
+                                            <div class="text-sm text-gray-500 mb-1">最大回撤</div>
+                                            <div class="text-xl font-bold text-danger" id="resultMaxDrawdown">-8.3%</div>
+                                            <div class="mt-2 text-xs text-gray-600">
+                                                <strong>说明:</strong> 最大损失比例，越小越好
+                                            </div>
+                                        </div>
+                                        <div class="p-4 bg-white rounded-lg shadow-sm text-center card-hover">
+                                            <div class="text-sm text-gray-500 mb-1">胜率</div>
+                                            <div class="text-xl font-bold text-primary" id="resultWinRate">62%</div>
+                                            <div class="mt-2 text-xs text-gray-600">
+                                                <strong>说明:</strong> 盈利交易占比，越高越好
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 投资建议 -->
+                                <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-primary">
+                                    <h4 class="font-semibold text-lg mb-3 flex items-center">
+                                        <i class="fa fa-lightbulb-o text-primary mr-2"></i>
+                                        投资建议
+                                    </h4>
+                                    <p class="text-gray-700 mb-4" id="resultRecommendation">
+                                        根据均值回归策略分析，当前股价略低于近期均值，处于相对低估状态。策略发出<strong class="text-success">买入信号</strong>，建议在当前价位分批建仓，设置8%的止损位。
+                                    </p>
+                                    <div class="flex flex-wrap gap-2 mb-6">
+                                        <span class="px-3 py-1 bg-success/10 text-success text-sm rounded-full">买入信号</span>
+                                        <span class="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">低风险</span>
+                                        <span class="px-3 py-1 bg-neutral text-gray-600 text-sm rounded-full">持有周期：中短期</span>
+                                    </div>
+                                    
+                                    <div class="flex flex-wrap gap-3">
+                                        <button class="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-md transition-custom shadow-sm hover:shadow flex items-center">
+                                            <i class="fa fa-star-o mr-2"></i>
+                                            收藏分析结果
+                                        </button>
+                                        <button class="px-4 py-2 bg-white border border-gray-300 hover:border-primary hover:text-primary text-sm font-medium rounded-md transition-custom flex items-center">
+                                            <i class="fa fa-download mr-2"></i>
+                                            下载分析报告
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 市场行情 -->
+        <section id="market" class="py-12 bg-neutral">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-primary mb-4">市场行情</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto">实时掌握市场动态，把握投资机会</p>
+                </div>
+                
+                <!-- 主要指数行情 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-semibold">上证指数</h3>
+                                <p class="text-sm text-gray-500">000001.SH</p>
+                            </div>
+                            <span class="text-success text-sm flex items-center">
+                                <i class="fa fa-caret-up mr-1"></i>
+                                <span>1.24%</span>
+                            </span>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <span class="text-2xl font-bold">3,286.45</span>
+                            <div class="h-16 w-32">
+                                <canvas id="shanghaiIndexChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
+                            <div>
+                                <div class="text-gray-500">今开</div>
+                                <div>3,258.72</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500">最高</div>
+                                <div>3,291.56</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500">最低</div>
+                                <div>3,255.18</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-semibold">深证成指</h3>
+                                <p class="text-sm text-gray-500">399001.SZ</p>
+                            </div>
+                            <span class="text-success text-sm flex items-center">
+                                <i class="fa fa-caret-up mr-1"></i>
+                                <span>0.87%</span>
+                            </span>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <span class="text-2xl font-bold">11,130.38</span>
+                            <div class="h-16 w-32">
+                                <canvas id="shenzhenIndexChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
+                            <div>
+                                <div class="text-gray-500">今开</div>
+                                <div>11,056.23</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500">最高</div>
+                                <div>11,152.78</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500">最低</div>
+                                <div>11,042.56</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-semibold">创业板指</h3>
+                                <p class="text-sm text-gray-500">399006.SZ</p>
+                            </div>
+                            <span class="text-danger text-sm flex items-center">
+                                <i class="fa fa-caret-down mr-1"></i>
+                                <span>0.32%</span>
+                            </span>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <span class="text-2xl font-bold">2,276.22</span>
+                            <div class="h-16 w-32">
+                                <canvas id="growthEnterpriseIndexChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
+                            <div>
+                                <div class="text-gray-500">今开</div>
+                                <div>2,281.56</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500">最高</div>
+                                <div>2,289.34</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500">最低</div>
+                                <div>2,270.12</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 行业板块涨幅榜 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-10">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-semibold">行业板块涨幅榜</h3>
+                        <div class="flex space-x-2">
+                            <button class="board-tab active px-3 py-1 bg-primary/10 text-primary text-sm rounded-md">涨幅</button>
+                            <button class="board-tab px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-md hover:bg-gray-200 transition-custom">跌幅</button>
+                            <button class="board-tab px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-md hover:bg-gray-200 transition-custom">成交额</button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">排名</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">行业板块</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">涨跌幅</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">领涨股</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成交额(亿)</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上涨家数</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下跌家数</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">半导体</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-success">+5.23%</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">中芯国际</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">256.8</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">86</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">12</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">新能源</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-success">+3.87%</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">宁德时代</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">189.5</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">65</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">23</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">人工智能</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-success">+3.12%</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">科大讯飞</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">215.3</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">72</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">18</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">4</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">军工</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-success">+2.76%</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">中航沈飞</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">132.7</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">58</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">27</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">5</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">医疗健康</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-success">+2.15%</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">恒瑞医药</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">98.6</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">45</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">32</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">查看全部板块 <i class="fa fa-arrow-right ml-1 text-xs"></i></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 量化学院 - 增加更多金融量化知识 -->
+        <section id="education" class="py-16 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-primary mb-4">量化学院</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto">学习量化交易知识，提升投资技能</p>
+                </div>
+                
+                <!-- 量化知识文章 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+                    <div class="bg-neutral p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fa fa-book text-primary mr-2"></i>
+                            量化交易基础
+                        </h3>
+                        
+                        <div class="space-y-6">
+                            <article class="bg-white p-5 rounded-lg shadow-sm card-hover">
+                                <h4 class="text-lg font-semibold mb-2">量化交易的核心原理与优势</h4>
+                                <p class="text-gray-600 mb-3 text-sm">
+                                    量化交易是一种利用数学模型和计算机算法来制定交易策略并自动执行的交易方式。与传统的主观交易相比，量化交易具有三大核心优势：
+                                </p>
+                                <ul class="text-gray-600 text-sm space-y-1 mb-3 pl-5 list-disc">
+                                    <li>消除人为情绪干扰，保持交易纪律性</li>
+                                    <li>能够同时处理大量数据，发现人类难以察觉的模式</li>
+                                    <li>可以进行历史回测，验证策略有效性</li>
+                                </ul>
+                                <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">阅读全文 <i class="fa fa-angle-right ml-1"></i></a>
+                            </article>
+                            
+                            <article class="bg-white p-5 rounded-lg shadow-sm card-hover">
+                                <h4 class="text-lg font-semibold mb-2">如何构建有效的量化交易系统</h4>
+                                <p class="text-gray-600 mb-3 text-sm">
+                                    一个完整的量化交易系统包括六大核心模块：策略引擎、风险管理、订单管理、执行系统、数据处理和绩效分析。构建过程需要经历策略构思、模型建立、回测验证、参数优化、实盘测试和持续监控六个阶段。
+                                </p>
+                                <p class="text-gray-600 text-sm mb-3">
+                                    有效的量化系统应当具备鲁棒性、可扩展性和风险可控性三大特点，能够适应不同的市场环境。
+                                </p>
+                                <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">阅读全文 <i class="fa fa-angle-right ml-1"></i></a>
+                            </article>
+                            
+                            <article class="bg-white p-5 rounded-lg shadow-sm card-hover">
+                                <h4 class="text-lg font-semibold mb-2">量化策略的评价指标体系</h4>
+                                <p class="text-gray-600 mb-3 text-sm">
+                                    评价一个量化策略的优劣不能仅看收益率，而需要综合考虑多个维度：
+                                </p>
+                                <ul class="text-gray-600 text-sm space-y-1 mb-3 pl-5 list-disc">
+                                    <li>收益能力：年化收益率、累计收益率、超额收益率</li>
+                                    <li>风险水平：最大回撤、波动率、下行风险</li>
+                                    <li>风险调整后收益：夏普比率、信息比率、索提诺比率</li>
+                                    <li>交易表现：胜率、盈亏比、交易频率</li>
+                                </ul>
+                                <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">阅读全文 <i class="fa fa-angle-right ml-1"></i></a>
+                            </article>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-neutral p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fa fa-line-chart text-primary mr-2"></i>
+                            技术分析与指标应用
+                        </h3>
+                        
+                        <div class="space-y-6">
+                            <article class="bg-white p-5 rounded-lg shadow-sm card-hover">
+                                <h4 class="text-lg font-semibold mb-2">K线图分析：从单根到组合形态</h4>
+                                <p class="text-gray-600 mb-3 text-sm">
+                                    K线图是技术分析的基础工具，每一根K线都包含了开盘价、收盘价、最高价和最低价四个价格信息。单根K线可以分为光头光脚、带上下影线等不同形态，分别代表不同的市场含义。
+                                </p>
+                                <p class="text-gray-600 text-sm mb-3">
+                                    当多根K线组成特定形态时，如头肩顶、双重底、吞没形态等，往往预示着市场趋势可能发生转变，这是量化策略中常用的信号来源。
+                                </p>
+                                <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">阅读全文 <i class="fa fa-angle-right ml-1"></i></a>
+                            </article>
+                            
+                            <article class="bg-white p-5 rounded-lg shadow-sm card-hover">
+                                <h4 class="text-lg font-semibold mb-2">移动平均线的进阶应用技巧</h4>
+                                <p class="text-gray-600 mb-3 text-sm">
+                                    移动平均线(MA)是最常用的趋势跟踪指标，除了简单的金叉死叉信号外，还有多种进阶应用：
+                                </p>
+                                <ul class="text-gray-600 text-sm space-y-1 mb-3 pl-5 list-disc">
+                                    <li>均线多头/空头排列判断中长期趋势</li>
+                                    <li>价格与均线的偏离程度判断超买超卖</li>
+                                    <li>不同周期均线组合构建交易系统</li>
+                                    <li>均线斜率变化识别趋势强度变化</li>
+                                </ul>
+                                <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">阅读全文 <i class="fa fa-angle-right ml-1"></i></a>
+                            </article>
+                            
+                            <article class="bg-white p-5 rounded-lg shadow-sm card-hover">
+                                <h4 class="text-lg font-semibold mb-2">成交量分析：验证价格变动的有效性</h4>
+                                <p class="text-gray-600 mb-3 text-sm">
+                                    成交量是价格变动的"确认者"，在量化分析中具有重要地位。价格上涨时成交量放大，通常被视为上涨趋势强劲的信号；而价格下跌时成交量放大，则可能预示着抛压沉重。
+                                </p>
+                                <p class="text-gray-600 text-sm mb-3">
+                                    量价配合关系是判断趋势持续性的重要依据，常见的量价分析指标包括成交量加权平均价(VWAP)、能量潮(OBV)和成交量比率(VR)等。
+                                </p>
+                                <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">阅读全文 <i class="fa fa-angle-right ml-1"></i></a>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 量化策略解析 -->
+                <div>
+                    <h3 class="text-2xl font-semibold mb-8 text-center">量化策略解析</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                            <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-5">
+                                <i class="fa fa-balance-scale text-2xl text-primary"></i>
+                            </div>
+                            <h4 class="text-lg font-semibold mb-3">均值回归策略</h4>
+                            <p class="text-gray-600 text-sm mb-4">
+                                均值回归策略基于"价格围绕价值波动"的原理，认为价格偏离均值到一定程度后会向均值回归。常见的实现方式包括：
+                            </p>
+                            <ul class="text-gray-600 text-sm space-y-2 mb-5 pl-5 list-disc">
+                                <li>基于移动平均线的偏离度</li>
+                                <li>Bollinger Bands通道突破</li>
+                                <li>RSI超买超卖区间</li>
+                                <li>MACD背离信号</li>
+                            </ul>
+                            <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">
+                                策略详解 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                            <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-5">
+                                <i class="fa fa-area-chart text-2xl text-primary"></i>
+                            </div>
+                            <h4 class="text-lg font-semibold mb-3">趋势跟踪策略</h4>
+                            <p class="text-gray-600 text-sm mb-4">
+                                趋势跟踪策略认为"趋势会延续"，通过识别和跟随市场趋势获取收益。主要实现方法有：
+                            </p>
+                            <ul class="text-gray-600 text-sm space-y-2 mb-5 pl-5 list-disc">
+                                <li>移动平均线交叉系统</li>
+                                <li>高低点突破策略</li>
+                                <li>ADX趋势强度指标</li>
+                                <li>海龟交易法则</li>
+                            </ul>
+                            <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">
+                                策略详解 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                            <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-5">
+                                <i class="fa fa-exchange text-2xl text-primary"></i>
+                            </div>
+                            <h4 class="text-lg font-semibold mb-3">套利策略</h4>
+                            <p class="text-gray-600 text-sm mb-4">
+                                套利策略利用市场价格的不合理偏差获取低风险收益，主要类型包括：
+                            </p>
+                            <ul class="text-gray-600 text-sm space-y-2 mb-5 pl-5 list-disc">
+                                <li>跨期套利：同一品种不同合约</li>
+                                <li>跨市场套利：不同市场同一品种</li>
+                                <li>跨品种套利：相关品种间价差</li>
+                                <li>统计套利：基于历史相关性</li>
+                            </ul>
+                            <a href="#" class="text-primary hover:text-primary/80 text-sm transition-custom">
+                                策略详解 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <footer class="bg-dark text-white py-12">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-4">
+                            <i class="fa fa-line-chart text-2xl"></i>
+                            <span class="text-xl font-bold">云朝纪</span>
+                        </div>
+                        <p class="text-white/80 max-w-md">专业的股票量化分析平台，用数据驱动决策，让量化分析为您的投资保驾护航。</p>
+                        <div class="flex space-x-4 mt-6">
+                            <a href="#" class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-custom">
+                                <i class="fa fa-weixin"></i>
+                            </a>
+                            <a href="#" class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-custom">
+                                <i class="fa fa-weibo"></i>
+                            </a>
+                            <a href="#" class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-custom">
+                                <i class="fa fa-github"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">平台服务</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#analyzer" class="text-white/80 hover:text-white transition-custom">量化分析工具</a></li>
+                            <li><a href="#strategies" class="text-white/80 hover:text-white transition-custom">量化策略服务</a></li>
+                            <li><a href="#portfolio" class="text-white/80 hover:text-white transition-custom">我的投资组合</a></li>
+                            <li><a href="#education" class="text-white/80 hover:text-white transition-custom">量化学院</a></li>
+                            <li><a href="#news" class="text-white/80 hover:text-white transition-custom">财经资讯</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">帮助中心</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="text-white/80 hover:text-white transition-custom">新手指南</a></li>
+                            <li><a href="#" class="text-white/80 hover:text-white transition-custom">常见问题</a></li>
+                            <li><a href="#" class="text-white/80 hover:text-white transition-custom">会员权益说明</a></li>
+                            <li><a href="#" class="text-white/80 hover:text-white transition-custom">策略回测教程</a></li>
+                            <li><a href="#" class="text-white/80 hover:text-white transition-custom">联系客服</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <i class="fa fa-envelope-o mt-1 mr-3 text-white/60"></i>
+                                <span class="text-white/80">service@yunchaoji.com</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-phone mt-1 mr-3 text-white/60"></i>
+                                <span class="text-white/80">400-888-9999</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-clock-o mt-1 mr-3 text-white/60"></i>
+                                <span class="text-white/80">工作日 9:00-18:00</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="border-t border-white/10 pt-8">
+                    <div class="flex flex-col md:flex-row justify-between items-center">
+                        <p class="text-white/60 text-sm text-center md:text-left">
+                            © 2025 云朝纪 - 专业股票量化分析平台 版权所有
+                        </p>
+                        <div class="flex space-x-6 mt-4 md:mt-0">
+                            <a href="#" class="text-white/60 hover:text-white text-sm transition-custom">隐私政策</a>
+                            <a href="#" class="text-white/60 hover:text-white text-sm transition-custom">用户协议</a>
+                            <a href="#" class="text-white/60 hover:text-white text-sm transition-custom">免责声明</a>
+                        </div>
+                    </div>
+                    <p class="text-white/60 text-sm text-center mt-4">
+                        投资有风险，入市需谨慎。平台提供的所有分析数据和建议仅供参考，不构成任何投资决策依据。
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 transform transition-all scale-95 opacity-0" id="loginModalContent">
+            <div class="p-6 sm:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-dark">用户登录</h3>
+                    <button id="closeLoginModal" class="text-gray-500 hover:text-gray-700 transition-custom">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="loginPhone" class="block text-gray-700 mb-2 font-medium">手机号码</label>
+                        <input type="tel" id="loginPhone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请输入手机号码" required>
+                    </div>
+                    
+                    <div>
+                        <label for="loginPassword" class="block text-gray-700 mb-2 font-medium">密码</label>
+                        <input type="password" id="loginPassword" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请输入密码" required>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="text-primary focus:ring-primary">
+                            <span class="ml-2 text-sm text-gray-600">记住我</span>
+                        </label>
+                        <a href="#" class="text-sm text-primary hover:text-primary/80 transition-custom">忘记密码?</a>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-md transition-custom shadow-sm hover:shadow">
+                        登录
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-600">
+                        还没有账号? <button id="switchToRegister" class="text-primary hover:text-primary/80 transition-custom font-medium">立即注册</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 - 简化版，不需要验证码 -->
+    <div id="registerModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 transform transition-all scale-95 opacity-0" id="registerModalContent">
+            <div class="p-6 sm:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-dark">用户注册</h3>
+                    <button id="closeRegisterModal" class="text-gray-500 hover:text-gray-700 transition-custom">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="registerForm" class="space-y-4">
+                    <div>
+                        <label for="registerPhone" class="block text-gray-700 mb-2 font-medium">手机号码</label>
+                        <input type="tel" id="registerPhone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请输入手机号码" required>
+                    </div>
+                    
+                    <div>
+                        <label for="registerPassword" class="block text-gray-700 mb-2 font-medium">设置密码</label>
+                        <input type="password" id="registerPassword" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请设置6-16位密码" required>
+                    </div>
+                    
+                    <div>
+                        <label for="confirmPassword" class="block text-gray-700 mb-2 font-medium">确认密码</label>
+                        <input type="password" id="confirmPassword" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请再次输入密码" required>
+                    </div>
+                    
+                    <div class="pt-2">
+                        <label class="flex items-start">
+                            <input type="checkbox" class="text-primary focus:ring-primary mt-1" required>
+                            <span class="ml-2 text-sm text-gray-600">
+                                我已阅读并同意<a href="#" class="text-primary hover:underline">《用户服务协议》</a>和<a href="#" class="text-primary hover:underline">《隐私政策》</a>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-md transition-custom shadow-sm hover:shadow">
+                        注册账号
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-600">
+                        已有账号? <button id="switchToLogin" class="text-primary hover:text-primary/80 transition-custom font-medium">立即登录</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册成功提示模态框 -->
+    <div id="registerSuccessModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 text-center transform transition-all scale-95 opacity-0" id="registerSuccessContent">
+            <div class="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa fa-check text-2xl text-success"></i>
+            </div>
+            <h3 class="text-xl font-bold text-dark mb-2">注册成功</h3>
+            <p class="text-gray-600 mb-6">您已成功注册云朝纪量化平台账号</p>
+            <button id="gotoLoginBtn" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-md transition-custom shadow-sm hover:shadow">
+                前往登录
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 全局图表实例存储
+        let chartInstances = {
+            resultChart: null,
+            volumeChart: null,
+            returnsChart: null,
+            shanghaiIndexChart: null,
+            shenzhenIndexChart: null,
+            growthEnterpriseIndexChart: null
+        };
+        
+        // 不同股票的特性参数 - 用于生成符合实际的模拟数据
+        const stockCharacteristics = {
+            '600519': { // 贵州茅台 - 高价股，波动较小，业绩稳定
+                basePrice: 1600,
+                volatility: 0.015, // 波动率
+                trend: 0.0005, // 长期趋势
+                volumeRange: [100000, 500000], // 成交量范围
+                performance: {
+                    annualReturn: 0.18, // 18%
+                    sharpeRatio: 1.6,
+                    maxDrawdown: -0.12, // -12%
+                    winRate: 0.58 // 58%
+                }
+            },
+            '600036': { // 招商银行 - 金融股，中等波动
+                basePrice: 35,
+                volatility: 0.025,
+                trend: 0.0003,
+                volumeRange: [2000000, 8000000],
+                performance: {
+                    annualReturn: 0.24,
+                    sharpeRatio: 1.8,
+                    maxDrawdown: -0.08,
+                    winRate: 0.62
+                }
+            },
+            '002594': { // 比亚迪 - 成长股，波动较大
+                basePrice: 230,
+                volatility: 0.045,
+                trend: 0.0008,
+                volumeRange: [3000000, 15000000],
+                performance: {
+                    annualReturn: 0.32,
+                    sharpeRatio: 1.4,
+                    maxDrawdown: -0.22,
+                    winRate: 0.56
+                }
+            },
+            '601318': { // 中国平安 - 金融股，中等波动
+                basePrice: 45,
+                volatility: 0.03,
+                trend: 0.0002,
+                volumeRange: [1500000, 6000000],
+                performance: {
+                    annualReturn: 0.16,
+                    sharpeRatio: 1.5,
+                    maxDrawdown: -0.15,
+                    winRate: 0.59
+                }
+            },
+            'default': { // 默认参数
+                basePrice: 50,
+                volatility: 0.035,
+                trend: 0.0004,
+                volumeRange: [1000000, 5000000],
+                performance: {
+                    annualReturn: 0.22,
+                    sharpeRatio: 1.5,
+                    maxDrawdown: -0.14,
+                    winRate: 0.60
+                }
+            }
+        };
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化日期选择器为最近一年
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setFullYear(endDate.getFullYear() - 1);
+            
+            document.getElementById('startDate').valueAsDate = startDate;
+            document.getElementById('endDate').valueAsDate = endDate;
+            
+            // 隐藏加载动画
+            setTimeout(() => {
+                document.getElementById('pageLoader').classList.add('opacity-0');
+                setTimeout(() => {
+                    document.getElementById('pageLoader').classList.add('hidden');
+                }, 300);
+            }, 800);
+            
+            // 初始化市场指数图表
+            initMarketIndexCharts();
+            
+            // 初始化事件监听
+            initEventListeners();
+        });
+        
+        // 初始化所有事件监听
+        function initEventListeners() {
+            // 首页登录注册按钮
+            document.getElementById('showLoginBtn').addEventListener('click', () => {
+                showModal('loginModal', 'loginModalContent');
+            });
+            
+            document.getElementById('showRegisterBtn').addEventListener('click', () => {
+                showModal('registerModal', 'registerModalContent');
+            });
+            
+            // 股票代码选择逻辑
+            const stockCodeSelect = document.getElementById('stockCode');
+            const customStockCodeDiv = document.getElementById('customStockCode');
+            
+            stockCodeSelect.addEventListener('change', () => {
+                if (stockCodeSelect.value === 'custom') {
+                    customStockCodeDiv.classList.remove('hidden');
+                } else {
+                    customStockCodeDiv.classList.add('hidden');
+                }
+            });
+            
+            // 快速选择股票
+            const quickStockBtns = document.querySelectorAll('.quick-stock-btn');
+            quickStockBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const code = this.getAttribute('data-code');
+                    stockCodeSelect.value = code;
+                    customStockCodeDiv.classList.add('hidden');
+                    
+                    // 高亮显示选中的按钮
+                    quickStockBtns.forEach(b => {
+                        b.classList.remove('bg-primary/10', 'text-primary');
+                        b.classList.add('bg-neutral');
+                    });
+                    this.classList.remove('bg-neutral');
+                    this.classList.add('bg-primary/10', 'text-primary');
+                });
+            });
+            
+            // 时间范围按钮
+            const timeRangeBtns = document.querySelectorAll('.time-range-btn');
+            timeRangeBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const range = this.getAttribute('data-range');
+                    setDateRangeByPeriod(range);
+                    
+                    // 高亮显示选中的按钮
+                    timeRangeBtns.forEach(b => {
+                        b.classList.remove('bg-primary/10', 'text-primary');
+                        b.classList.add('bg-neutral');
+                    });
+                    this.classList.remove('bg-neutral');
+                    this.classList.add('bg-primary/10', 'text-primary');
+                });
+            });
+            
+            // 高级参数切换
+            const advancedParamsToggle = document.getElementById('advancedParamsToggle');
+            const advancedParams = document.getElementById('advancedParams');
+            
+            advancedParamsToggle.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                advancedParams.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            });
+            
+            // 分析按钮点击事件 - 重点修复图表显示问题
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const loadingState = document.getElementById('loadingState');
+            const initialState = document.getElementById('initialState');
+            const resultsState = document.getElementById('resultsState');
+            
+            analyzeBtn.addEventListener('click', () => {
+                // 验证股票代码是否选择
+                const stockCode = document.getElementById('stockCode').value;
+                if (!stockCode || (stockCode === 'custom' && !document.querySelector('#customStockCode input').value)) {
+                    alert('请选择或输入股票代码');
+                    return;
+                }
+                
+                // 显示加载状态
+                initialState.classList.add('hidden');
+                resultsState.classList.add('hidden');
+                loadingState.classList.remove('hidden');
+                
+                // 模拟分析过程
+                setTimeout(() => {
+                    // 隐藏加载状态，显示结果
+                    loadingState.classList.add('hidden');
+                    resultsState.classList.remove('hidden');
+                    
+                    // 获取选中的股票代码
+                    const selectedStockCode = stockCode === 'custom' 
+                        ? 'custom' 
+                        : stockCode;
+                    
+                    // 更新结果数据 - 传入股票代码以生成对应数据
+                    updateAnalysisResults(selectedStockCode);
+                    
+                    // 显示图表加载指示器
+                    document.getElementById('klineChartLoader').classList.remove('hidden');
+                    
+                    // 延迟绘制图表，确保DOM已完全渲染
+                    setTimeout(() => {
+                        // 绘制图表 - 传入股票代码以生成对应数据
+                        drawCharts(selectedStockCode);
+                        // 隐藏图表加载指示器
+                        document.getElementById('klineChartLoader').classList.add('hidden');
+                    }, 500);
+                }, 2000);
+            });
+            
+            // 图表切换逻辑 - 修复切换时的显示问题
+            const chartTabs = document.querySelectorAll('.chart-tab');
+            const chartContainers = document.querySelectorAll('.chart-container');
+            const chartLoaders = {
+                'kline': document.getElementById('klineChartLoader'),
+                'volume': document.getElementById('volumeChartLoader'),
+                'returns': document.getElementById('returnsChartLoader')
+            };
+            
+            chartTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const chartId = tab.getAttribute('data-chart');
+                    
+                    // 显示当前图表的加载指示器
+                    chartLoaders[chartId].classList.remove('hidden');
+                    
+                    // 移除所有标签的活动状态
+                    chartTabs.forEach(t => {
+                        t.classList.remove('active', 'bg-primary', 'text-white');
+                        t.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                    });
+                    
+                    // 添加当前标签的活动状态
+                    tab.classList.add('active', 'bg-primary', 'text-white');
+                    tab.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                    
+                    // 隐藏所有图表
+                    chartContainers.forEach(container => {
+                        container.classList.add('hidden');
+                    });
+                    
+                    // 显示对应图表
+                    const activeContainer = document.getElementById(`${chartId}ChartContainer`);
+                    activeContainer.classList.remove('hidden');
+                    
+                    // 确保图表已渲染并更新尺寸
+                    setTimeout(() => {
+                        const targetChartId = chartId === 'kline' ? 'resultChart' : `${chartId}Chart`;
+                        if (chartInstances[targetChartId]) {
+                            chartInstances[targetChartId].resize();
+                        } else {
+                            // 如果图表未初始化，则创建它
+                            const stockCode = document.getElementById('stockCode').value || 'default';
+                            if (chartId === 'volume') {
+                                initVolumeChart(stockCode);
+                            } else if (chartId === 'returns') {
+                                initReturnsChart(stockCode);
+                            }
+                        }
+                        // 隐藏加载指示器
+                        chartLoaders[chartId].classList.add('hidden');
+                    }, 300);
+                });
+            });
+            
+            // 图表周期切换
+            const chartPeriodBtns = document.querySelectorAll('.chart-period-btn');
+            chartPeriodBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 显示当前活动图表的加载指示器
+                    const activeChart = document.querySelector('.chart-container:not(.hidden)').id.replace('ChartContainer', '');
+                    chartLoaders[activeChart].classList.remove('hidden');
+                    
+                    // 移除所有按钮的活动状态
+                    chartPeriodBtns.forEach(b => {
+                        b.classList.remove('active', 'border-primary', 'text-primary');
+                    });
+                    
+                    // 添加当前按钮的活动状态
+                    this.classList.add('active', 'border-primary', 'text-primary');
+                    
+                    // 更新图表数据
+                    const period = this.getAttribute('data-period');
+                    const stockCode = document.getElementById('stockCode').value || 'default';
+                    updateChartsByPeriod(period, stockCode);
+                    
+                    // 隐藏加载指示器
+                    setTimeout(() => {
+                        chartLoaders[activeChart].classList.add('hidden');
+                    }, 500);
+                });
+            });
+            
+            // 图表缩放控制
+            document.getElementById('zoomInBtn').addEventListener('click', function() {
+                const activeChart = document.querySelector('.chart-container:not(.hidden)').id.replace('ChartContainer', '');
+                const chartId = activeChart === 'kline' ? 'resultChart' : activeChart + 'Chart';
+                
+                if (chartInstances[chartId]) {
+                    chartInstances[chartId].zoom('x', 1.2);
+                }
+            });
+            
+            document.getElementById('zoomOutBtn').addEventListener('click', function() {
+                const activeChart = document.querySelector('.chart-container:not(.hidden)').id.replace('ChartContainer', '');
+                const chartId = activeChart === 'kline' ? 'resultChart' : activeChart + 'Chart';
+                
+                if (chartInstances[chartId]) {
+                    chartInstances[chartId].zoom('x', 0.8);
+                }
+            });
+            
+            document.getElementById('resetZoomBtn').addEventListener('click', function() {
+                const activeChart = document.querySelector('.chart-container:not(.hidden)').id.replace('ChartContainer', '');
+                const chartId = activeChart === 'kline' ? 'resultChart' : activeChart + 'Chart';
+                
+                if (chartInstances[chartId]) {
+                    chartInstances[chartId].resetZoom();
+                }
+            });
+            
+            // 下载图表
+            document.getElementById('downloadChartBtn').addEventListener('click', function() {
+                const activeChart = document.querySelector('.chart-container:not(.hidden)').id.replace('ChartContainer', '');
+                const chartId = activeChart === 'kline' ? 'resultChart' : activeChart + 'Chart';
+                const canvas = document.getElementById(chartId);
+                
+                if (canvas) {
+                    // 创建下载链接
+                    const link = document.createElement('a');
+                    link.download = `${chartId}_${new Date().toLocaleDateString()}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }
+            });
+            
+            // 用户菜单切换
+            document.getElementById('userMenuBtn').addEventListener('click', function() {
+                const userMenu = document.getElementById('userMenu');
+                userMenu.classList.toggle('hidden');
+            });
+            
+            // 通知下拉框
+            document.getElementById('notificationBtn').addEventListener('click', function() {
+                const notificationDropdown = document.getElementById('notificationDropdown');
+                notificationDropdown.classList.toggle('hidden');
+            });
+            
+            // 移动端菜单切换
+            document.getElementById('userMenuBtnMobile').addEventListener('click', function() {
+                const mobileMenu = document.getElementById('userMobileMenu');
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // 点击其他区域关闭用户菜单和通知下拉框
+            document.addEventListener('click', function(e) {
+                const userMenuBtn = document.getElementById('userMenuBtn');
+                const userMenu = document.getElementById('userMenu');
+                const notificationBtn = document.getElementById('notificationBtn');
+                const notificationDropdown = document.getElementById('notificationDropdown');
+                const userMobileMenu = document.getElementById('userMobileMenu');
+                
+                if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+                    userMenu.classList.add('hidden');
+                }
+                
+                if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
+                    notificationDropdown.classList.add('hidden');
+                }
+            });
+            
+            // 登录表单提交
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                hideModal('loginModal', 'loginModalContent');
+                
+                // 模拟登录成功，切换到用户界面
+                document.getElementById('homePage').classList.add('hidden');
+                document.getElementById('userDashboard').classList.remove('hidden');
+                
+                // 更新用户名
+                const phone = document.getElementById('loginPhone').value;
+                if (phone) {
+                    document.getElementById('userPhone').textContent = phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1****$3');
+                    document.getElementById('welcomeUsername').textContent = phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1****$3');
+                }
+            });
+            
+            // 注册表单提交
+            document.getElementById('registerForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 验证密码一致性
+                const password = document.getElementById('registerPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (password !== confirmPassword) {
+                    alert('两次输入的密码不一致，请重新输入');
+                    return;
+                }
+                
+                hideModal('registerModal', 'registerModalContent');
+                
+                // 显示注册成功提示
+                showModal('registerSuccessModal', 'registerSuccessContent');
+                
+                // 重置表单
+                this.reset();
+            });
+            
+            // 注册成功后前往登录
+            document.getElementById('gotoLoginBtn').addEventListener('click', function() {
+                hideModal('registerSuccessModal', 'registerSuccessContent');
+                setTimeout(() => {
+                    showModal('loginModal', 'loginModalContent');
+                }, 300);
+            });
+            
+            // 模态框切换
+            document.getElementById('closeLoginModal').addEventListener('click', () => {
+                hideModal('loginModal', 'loginModalContent');
+            });
+            
+            document.getElementById('closeRegisterModal').addEventListener('click', () => {
+                hideModal('registerModal', 'registerModalContent');
+            });
+            
+            document.getElementById('switchToRegister').addEventListener('click', () => {
+                hideModal('loginModal', 'loginModalContent');
+                setTimeout(() => {
+                    showModal('registerModal', 'registerModalContent');
+                }, 300);
+            });
+            
+            document.getElementById('switchToLogin').addEventListener('click', () => {
+                hideModal('registerModal', 'registerModalContent');
+                setTimeout(() => {
+                    showModal('loginModal', 'loginModalContent');
+                }, 300);
+            });
+            
+            // 退出登录
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                // 切换回首页
+                document.getElementById('userDashboard').classList.add('hidden');
+                document.getElementById('homePage').classList.remove('hidden');
+            });
+            
+            document.getElementById('mobileLogoutBtn').addEventListener('click', function() {
+                // 切换回首页
+                document.getElementById('userDashboard').classList.add('hidden');
+                document.getElementById('homePage').classList.remove('hidden');
+                document.getElementById('userMobileMenu').classList.add('hidden');
+            });
+        }
+        
+        // 显示模态框
+        function showModal(modalId, contentId) {
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(contentId);
+            
+            modal.classList.remove('hidden');
+            // 防止背景滚动
+            document.body.style.overflow = 'hidden';
+            
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+        
+        // 隐藏模态框
+        function hideModal(modalId, contentId) {
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(contentId);
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                // 恢复背景滚动
+                document.body.style.overflow = '';
+            }, 300);
+        }
+        
+        // 根据周期设置日期范围，显示具体的年月日
+        function setDateRangeByPeriod(period) {
+            const endDate = new Date();
+            const startDate = new Date();
+            
+            // 计算不同周期的起始日期
+            switch(period) {
+                case '1M':
+                    startDate.setMonth(endDate.getMonth() - 1);
+                    break;
+                case '3M':
+                    startDate.setMonth(endDate.getMonth() - 3);
+                    break;
+                case '6M':
+                    startDate.setMonth(endDate.getMonth() - 6);
+                    break;
+                case '1Y':
+                    startDate.setFullYear(endDate.getFullYear() - 1);
+                    break;
+                case '3Y':
+                    startDate.setFullYear(endDate.getFullYear() - 3);
+                    break;
+                default:
+                    startDate.setFullYear(endDate.getFullYear() - 1);
+            }
+            
+            // 格式化并设置日期输入框
+            document.getElementById('startDate').valueAsDate = startDate;
+            document.getElementById('endDate').valueAsDate = endDate;
+        }
+        
+        // 更新分析结果数据 - 现在与具体股票关联
+        function updateAnalysisResults(stockCode) {
+            // 获取股票特性参数
+            const stockParams = stockCharacteristics[stockCode] || stockCharacteristics['default'];
+            
+            // 获取选中的参数
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const strategy = document.querySelector('input[name="strategy"]:checked').value;
+            const adjustment = document.getElementById('adjustment').value;
+            
+            // 格式化日期显示
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('zh-CN');
+            };
+            
+            // 复权方式文本映射
+            const adjustmentTexts = {
+                'qfq': '前复权',
+                'hfq': '后复权',
+                'none': '不复权'
+            };
+            
+            // 股票名称映射
+            const stockNames = {
+                '600000': '浦发银行 (600000)',
+                '600036': '招商银行 (600036)',
+                '601318': '中国平安 (601318)',
+                '600519': '贵州茅台 (600519)',
+                '601899': '紫金矿业 (601899)',
+                '000001': '平安银行 (000001)',
+                '000858': '五粮液 (000858)',
+                '002594': '比亚迪 (002594)',
+                'custom': `自定义股票 (${document.querySelector('#customStockCode input')?.value || 'XXXXXX'})`
+            };
+            
+            // 策略信息映射
+            const strategyInfo = {
+                'meanReversion': {
+                    name: '均值回归策略',
+                    recommendation: '根据均值回归策略分析，当前股价略低于近期均值，处于相对低估状态。策略发出<strong class="text-success">买入信号</strong>，建议在当前价位分批建仓，设置8%的止损位。'
+                },
+                'trendFollowing': {
+                    name: '趋势跟踪策略',
+                    recommendation: '根据趋势跟踪策略分析，当前股价处于上升趋势中，短期可能继续上涨。策略发出<strong class="text-success">买入信号</strong>，建议跟随趋势买入，设置10%的止损位。'
+                },
+                'rsi': {
+                    name: 'RSI指标策略',
+                    recommendation: '根据RSI指标策略分析，当前RSI值为68，接近超买区域但尚未达到。策略发出<strong class="text-gray-600">观望信号</strong>，建议等待回调后再考虑买入。'
+                },
+                'macd': {
+                    name: 'MACD策略',
+                    recommendation: '根据MACD策略分析，MACD线刚刚上穿信号线形成金叉，表明上涨动能开始增强。策略发出<strong class="text-success">买入信号</strong>，建议适量建仓。'
+                },
+                'bollinger': {
+                    name: '布林带策略',
+                    recommendation: '根据布林带策略分析，股价触及下轨后反弹，表明下方支撑较强。策略发出<strong class="text-success">买入信号</strong>，预期短期有反弹空间。'
+                },
+                'movingAverage': {
+                    name: '移动平均线策略',
+                    recommendation: '根据移动平均线策略分析，短期均线已上穿长期均线形成金叉，趋势向好。策略发出<strong class="text-success">买入信号</strong>，建议把握上升趋势。'
+                }
+            };
+            
+            // 根据股票特性生成价格相关数据
+            const basePrice = stockParams.basePrice;
+            const randomChange = (Math.random() * 3 - 0.5) * stockParams.volatility * 10; // 基于波动率的价格变动
+            const randomPrice = parseFloat((basePrice * (1 + randomChange / 100)).toFixed(2));
+            const changeClass = randomChange >= 0 ? 'text-success' : 'text-danger';
+            const changeIcon = randomChange >= 0 ? 'fa-caret-up' : 'fa-caret-down';
+            
+            const openPrice = parseFloat((randomPrice * (0.99 + Math.random() * 0.02)).toFixed(2));
+            const highPrice = parseFloat((Math.max(openPrice, randomPrice) * (1 + Math.random() * stockParams.volatility)).toFixed(2));
+            const lowPrice = parseFloat((Math.min(openPrice, randomPrice) * (1 - Math.random() * stockParams.volatility)).toFixed(2));
+            
+            // 基于股票特性生成成交量
+            const volumeRange = stockParams.volumeRange;
+            const volume = parseFloat(((volumeRange[0] + Math.random() * (volumeRange[1] - volumeRange[0])) / 10000).toFixed(1)) + '万手';
+            
+            // 更新结果DOM
+            document.getElementById('resultStockName').textContent = stockNames[stockCode] || stockNames['custom'];
+            document.getElementById('resultTimeRange').textContent = `分析周期：${formatDate(startDate)} 至 ${formatDate(endDate)} | ${adjustmentTexts[adjustment]}`;
+            document.getElementById('resultPrice').textContent = randomPrice;
+            document.getElementById('resultPrice').className = `text-2xl font-bold ${changeClass}`;
+            document.getElementById('resultChange').innerHTML = `<i class="fa ${changeIcon} mr-1"></i><span>${randomChange >= 0 ? '+' : ''}${randomChange.toFixed(2)}%</span>`;
+            document.getElementById('resultChange').className = `ml-2 ${changeClass} text-sm flex items-center`;
+            
+            // 更新盘口数据
+            document.getElementById('resultOpen').textContent = openPrice;
+            document.getElementById('resultHigh').textContent = highPrice;
+            document.getElementById('resultLow').textContent = lowPrice;
+            document.getElementById('resultVolume').textContent = volume;
+            
+            // 更新策略绩效指标 - 基于股票特性参数
+            const perf = stockParams.performance;
+            document.getElementById('resultAnnualReturn').textContent = `+${(perf.annualReturn * 100).toFixed(1)}%`;
+            document.getElementById('resultSharpeRatio').textContent = perf.sharpeRatio.toFixed(1);
+            document.getElementById('resultMaxDrawdown').textContent = `${(perf.maxDrawdown * 100).toFixed(1)}%`;
+            document.getElementById('resultWinRate').textContent = `${(perf.winRate * 100).toFixed(0)}%`;
+            
+            // 更新策略相关信息
+            document.getElementById('resultRecommendation').innerHTML = strategyInfo[strategy].recommendation;
+        }
+        
+        // 绘制所有图表 - 现在与具体股票关联
+        function drawCharts(stockCode) {
+            // 销毁已有图表
+            Object.values(chartInstances).forEach(instance => {
+                if (instance) instance.destroy();
+            });
+            
+            // 获取股票特性参数
+            const stockParams = stockCharacteristics[stockCode] || stockCharacteristics['default'];
+            
+            // 获取日期范围
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            
+            // 生成K线图数据 - 基于股票特性
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const klineData = generateKlineData(days, startDate, stockParams);
+            
+            // 绘制K线图
+            initKlineChart(klineData);
+            
+            // 初始化其他图表但不显示
+            initVolumeChart(klineData, stockParams);
+            initReturnsChart(klineData, stockParams);
+        }
+        
+        // 初始化K线图
+        function initKlineChart(klineData) {
+            const resultChartCtx = document.getElementById('resultChart').getContext('2d');
+            
+            // 销毁现有图表
+            if (chartInstances.resultChart) {
+                chartInstances.resultChart.destroy();
+            }
+            
+            // 创建新图表
+            chartInstances.resultChart = new Chart(resultChartCtx, {
+                type: 'candlestick',
+                data: {
+                    datasets: [{
+                        label: '价格',
+                        data: klineData,
+                        color: {
+                            up: '#F53F3F',
+                            down: '#00B42A',
+                            unchanged: '#94A3B8'
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: {
+                                    day: 'MM-dd'
+                                }
+                            },
+                            grid: {
+                                color: '#E5E7EB'
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grid: {
+                                color: '#E5E7EB'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const d = context.raw;
+                                    return [
+                                        `日期: ${new Date(d.t).toLocaleDateString()}`,
+                                        `开盘: ${d.o.toFixed(2)}`,
+                                        `最高: ${d.h.toFixed(2)}`,
+                                        `最低: ${d.l.toFixed(2)}`,
+                                        `收盘: ${d.c.toFixed(2)}`
+                                    ];
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                enabled: true,
+                                mode: 'x'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 初始化成交量图
+        function initVolumeChart(klineData = null, stockParams = null) {
+            // 获取股票特性参数
+            if (!stockParams) {
+                const stockCode = document.getElementById('stockCode').value || 'default';
+                stockParams = stockCharacteristics[stockCode] || stockCharacteristics['default'];
+            }
+            
+            // 如果没有提供数据，则从K线图获取
+            if (!klineData && chartInstances.resultChart) {
+                klineData = chartInstances.resultChart.data.datasets[0].data;
+            }
+            
+            // 如果仍然没有数据，则生成
+            if (!klineData) {
+                const endDate = new Date(document.getElementById('endDate').value);
+                const startDate = new Date(document.getElementById('startDate').value);
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                klineData = generateKlineData(days, startDate, stockParams);
+            }
+            
+            // 生成成交量数据 - 基于股票特性
+            const volumeData = generateVolumeData(klineData, stockParams);
+            
+            const volumeChartCtx = document.getElementById('volumeChart').getContext('2d');
+            
+            // 销毁现有图表
+            if (chartInstances.volumeChart) {
+                chartInstances.volumeChart.destroy();
+            }
+            
+            // 创建新图表
+            chartInstances.volumeChart = new Chart(volumeChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: volumeData.labels,
+                    datasets: [{
+                        label: '成交量',
+                        data: volumeData.volumes,
+                        backgroundColor: volumeData.colors,
+                        borderWidth: 0,
+                        borderRadius: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: {
+                                    day: 'MM-dd'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grid: {
+                                color: '#E5E7EB'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value >= 1000000 ? (value / 1000000).toFixed(1) + 'M' : 
+                                           value >= 1000 ? (value / 1000).toFixed(1) + 'K' : value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const formattedValue = value >= 1000000 ? (value / 1000000).toFixed(1) + '百万手' : 
+                                                           value >= 1000 ? (value / 1000).toFixed(1) + '千手' : value + '手';
+                                    return `成交量: ${formattedValue}`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                enabled: true,
+                                mode: 'x'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 初始化收益率曲线图
+        function initReturnsChart(klineData = null, stockParams = null) {
+            // 获取股票特性参数
+            if (!stockParams) {
+                const stockCode = document.getElementById('stockCode').value || 'default';
+                stockParams = stockCharacteristics[stockCode] || stockCharacteristics['default'];
+            }
+            
+            // 如果没有提供数据，则从K线图获取
+            if (!klineData && chartInstances.resultChart) {
+                klineData = chartInstances.resultChart.data.datasets[0].data;
+            }
+            
+            // 如果仍然没有数据，则生成
+            if (!klineData) {
+                const endDate = new Date(document.getElementById('endDate').value);
+                const startDate = new Date(document.getElementById('startDate').value);
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                klineData = generateKlineData(days, startDate, stockParams);
+            }
+            
+            // 生成收益率数据 - 基于股票特性
+            const returnsData = generateReturnsData(klineData, stockParams);
+            
+            const returnsChartCtx = document.getElementById('returnsChart').getContext('2d');
+            
+            // 销毁现有图表
+            if (chartInstances.returnsChart) {
+                chartInstances.returnsChart.destroy();
+            }
+            
+            // 创建新图表
+            chartInstances.returnsChart = new Chart(returnsChartCtx, {
+                type: 'line',
+                data: {
+                    labels: returnsData.labels,
+                    datasets: [
+                        {
+                            label: '策略收益率',
+                            data: returnsData.strategy,
+                            borderColor: '#165DFF',
+                            backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: '市场基准',
+                            data: returnsData.benchmark,
+                            borderColor: '#94A3B8',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: {
+                                    day: 'MM-dd'
+                                }
+                            },
+                            grid: {
+                                color: '#E5E7EB'
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grid: {
+                                color: '#E5E7EB'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100).toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = (context.raw * 100).toFixed(2) + '%';
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                enabled: true,
+                                mode: 'x'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 根据周期更新图表数据 - 现在与具体股票关联
+        function updateChartsByPeriod(period, stockCode) {
+            // 获取股票特性参数
+            const stockParams = stockCharacteristics[stockCode] || stockCharacteristics['default'];
+            
+            // 获取当前日期范围
+            const endDate = new Date(document.getElementById('endDate').value);
+            let startDate = new Date(document.getElementById('startDate').value);
+            
+            // 根据周期调整日期范围
+            switch(period) {
+                case '1D':
+                    startDate = new Date(endDate);
+                    startDate.setDate(endDate.getDate() - 1);
+                    break;
+                case '1W':
+                    startDate = new Date(endDate);
+                    startDate.setDate(endDate.getDate() - 7);
+                    break;
+                case '1M':
+                    startDate = new Date(endDate);
+                    startDate.setMonth(endDate.getMonth() - 1);
+                    break;
+                case '3M':
+                    startDate = new Date(endDate);
+                    startDate.setMonth(endDate.getMonth() - 3);
+                    break;
+                case '1Y':
+                    startDate = new Date(endDate);
+                    startDate.setFullYear(endDate.getFullYear() - 1);
+                    break;
+            }
+            
+            // 更新日期选择器
+            document.getElementById('startDate').valueAsDate = startDate;
+            
+            // 重新生成数据并更新图表 - 基于股票特性
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const klineData = generateKlineData(days, startDate, stockParams);
+            
+            // 更新当前活动图表
+            const activeChart = document.querySelector('.chart-container:not(.hidden)').id.replace('ChartContainer', '');
+            
+            if (activeChart === 'kline') {
+                initKlineChart(klineData);
+            } else if (activeChart === 'volume') {
+                initVolumeChart(klineData, stockParams);
+            } else if (activeChart === 'returns') {
+                initReturnsChart(klineData, stockParams);
+            }
+        }
+        
+        // 初始化市场指数小图表
+        function initMarketIndexCharts() {
+            // 上证指数
+            const shanghaiCtx = document.getElementById('shanghaiIndexChart').getContext('2d');
+            const shanghaiData = generateTrendData(14, 3200, 3300, true);
+            chartInstances.shanghaiIndexChart = new Chart(shanghaiCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(14).fill(''),
+                    datasets: [{
+                        data: shanghaiData,
+                        borderColor: '#00B42A',
+                        backgroundColor: 'rgba(0, 180, 42, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    elements: { line: { tension: 0.4 } }
+                }
+            });
+            
+            // 深证成指
+            const shenzhenCtx = document.getElementById('shenzhenIndexChart').getContext('2d');
+            const shenzhenData = generateTrendData(14, 11000, 11200, true);
+            chartInstances.shenzhenIndexChart = new Chart(shenzhenCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(14).fill(''),
+                    datasets: [{
+                        data: shenzhenData,
+                        borderColor: '#00B42A',
+                        backgroundColor: 'rgba(0, 180, 42, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    elements: { line: { tension: 0.4 } }
+                }
+            });
+            
+            // 创业板指
+            const growthEnterpriseCtx = document.getElementById('growthEnterpriseIndexChart').getContext('2d');
+            const growthEnterpriseData = generateTrendData(14, 2280, 2300, false);
+            chartInstances.growthEnterpriseIndexChart = new Chart(growthEnterpriseCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(14).fill(''),
+                    datasets: [{
+                        data: growthEnterpriseData,
+                        borderColor: '#F53F3F',
+                        backgroundColor: 'rgba(245, 63, 63, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    elements: { line: { tension: 0.4 } }
+                }
+            });
+        }
+        
+        // 生成K线图数据 - 基于股票特性
+        function generateKlineData(days, startDate, stockParams) {
+            const data = [];
+            let date = new Date(startDate);
+            let price = stockParams.basePrice; // 使用股票基础价格
+            
+            for (let i = 0; i < days; i++) {
+                // 跳过周末
+                if (date.getDay() === 0 || date.getDay() === 6) {
+                    date.setDate(date.getDate() + 1);
+                    continue;
+                }
+                
+                // 基于股票波动率生成价格变动
+                const change = (Math.random() - 0.45) * 2 * stockParams.basePrice * stockParams.volatility;
+                const open = parseFloat(price.toFixed(2));
+                const close = parseFloat((open + change).toFixed(2));
+                const high = parseFloat((Math.max(open, close) + Math.random() * stockParams.basePrice * stockParams.volatility).toFixed(2));
+                const low = parseFloat((Math.min(open, close) - Math.random() * stockParams.basePrice * stockParams.volatility).toFixed(2));
+                
+                data.push({
+                    t: new Date(date),
+                    o: open,
+                    h: high,
+                    l: low,
+                    c: close
+                });
+                
+                // 更新下一天价格，加入长期趋势
+                price = close + stockParams.trend * stockParams.basePrice;
+                date.setDate(date.getDate() + 1);
+            }
+            
+            return data;
+        }
+        
+        // 生成成交量数据 - 基于股票特性
+        function generateVolumeData(klineData, stockParams) {
+            const labels = [];
+            const volumes = [];
+            const colors = [];
+            const volumeRange = stockParams.volumeRange;
+            
+            klineData.forEach(item => {
+                labels.push(new Date(item.t));
+                // 根据涨跌生成不同颜色的成交量，并基于股票特性的成交量范围
+                const volume = volumeRange[0] + Math.random() * (volumeRange[1] - volumeRange[0]);
+                volumes.push(volume);
+                colors.push(item.c >= item.o ? '#F53F3F' : '#00B42A');
+            });
+            
+            return { labels, volumes, colors };
+        }
+        
+        // 生成收益率数据 - 基于股票特性
+        function generateReturnsData(klineData, stockParams) {
+            const labels = [];
+            const strategy = [];
+            const benchmark = [];
+            
+            // 初始收益率为0
+            let strategyReturn = 0;
+            let benchmarkReturn = 0;
+            
+            // 第一个数据点
+            if (klineData.length > 0) {
+                labels.push(new Date(klineData[0].t));
+                strategy.push(0);
+                benchmark.push(0);
+                
+                // 基准价格
+                const basePrice = klineData[0].c;
+                let prevPrice = basePrice;
+                
+                // 基于股票特性生成后续收益率
+                const annualReturn = stockParams.performance.annualReturn;
+                const dailyReturnRate = Math.pow(1 + annualReturn, 1/252) - 1; // 年化收益转换为日收益
+                
+                for (let i = 1; i < klineData.length; i++) {
+                    labels.push(new Date(klineData[i].t));
+                    
+                    // 计算策略收益率（基于股票年化收益率）
+                    const priceChange = (klineData[i].c - prevPrice) / prevPrice;
+                    strategyReturn = parseFloat((strategyReturn + priceChange * (1 + dailyReturnRate * 10)).toFixed(4));
+                    strategy.push(strategyReturn);
+                    
+                    // 计算基准收益率
+                    benchmarkReturn = parseFloat(((klineData[i].c - basePrice) / basePrice * 0.8).toFixed(4)); // 基准略低于策略
+                    benchmark.push(benchmarkReturn);
+                    
+                    prevPrice = klineData[i].c;
+                }
+            }
+            
+            return { labels, strategy, benchmark };
+        }
+        
+        // 生成趋势数据的辅助函数
+        function generateTrendData(count, min, max, isUpward) {
+            const data = [];
+            let value = (min + max) / 2;
+            const step = (max - min) / count / 2;
+            
+            for (let i = 0; i < count; i++) {
+                // 随机波动
+                const change = (Math.random() - 0.3) * step;
+                // 如果是上升趋势，增加正向偏移
+                value += isUpward ? change + step * 0.3 : change;
+                
+                // 确保在范围内
+                if (value < min) value = min;
+                if (value > max) value = max;
+                
+                data.push(parseFloat(value.toFixed(2)));
+            }
+            
+            return data;
+        }
+    </script>
